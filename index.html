@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<title>小钰 × 小娜 · 背词记录</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:#080d18;
+  color:#f4f7fb;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",
+  "PingFang SC","Microsoft YaHei",sans-serif;
+}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.app{
+  width:min(1100px,100%);
+  margin:auto;
+  padding:22px 16px 50px;
+}
+.header{
+  padding:12px 4px 22px;
+}
+.logo{
+  color:#7dd3fc;
+  font-size:13px;
+  letter-spacing:2px;
+  margin-bottom:8px;
+}
+h1{
+  margin:0;
+  font-size:30px;
+}
+.subtitle{
+  margin-top:8px;
+  color:#8d98aa;
+  font-size:14px;
+}
+.panel{
+  background:#111827;
+  border:1px solid #202b3d;
+  border-radius:18px;
+  padding:16px;
+  margin-bottom:14px;
+}
+.controls{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+label{
+  display:block;
+  color:#8d98aa;
+  font-size:12px;
+  margin-bottom:6px;
+}
+select,input{
+  width:100%;
+  height:44px;
+  border:1px solid #29364b;
+  border-radius:11px;
+  background:#0b1220;
+  color:#fff;
+  padding:0 12px;
+  outline:none;
+}
+select:focus,input:focus{
+  border-color:#38bdf8;
+}
+.btn{
+  border:0;
+  border-radius:11px;
+  padding:11px 15px;
+  color:white;
+  background:#2563eb;
+}
+.btn.secondary{
+  background:#1f2937;
+}
+.btn.danger{
+  background:#7f1d1d;
+}
+.add-grid{
+  display:grid;
+  grid-template-columns:1.1fr 1fr 1fr auto;
+  gap:10px;
+  align-items:end;
+}
+.stats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+}
+.stat{
+  background:#0b1220;
+  border-radius:14px;
+  padding:14px;
+  border:1px solid #202b3d;
+}
+.stat-title{
+  color:#8d98aa;
+  font-size:12px;
+}
+.stat-value{
+  font-size:22px;
+  font-weight:700;
+  margin-top:5px;
+}
+.chart-wrap{
+  position:relative;
+  height:330px;
+}
+canvas{
+  width:100%;
+  height:100%;
+  display:block;
+  touch-action:pan-x;
+}
+.records{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.record{
+  display:grid;
+  grid-template-columns:1fr auto auto auto;
+  gap:10px;
+  align-items:center;
+  padding:12px;
+  border-radius:12px;
+  background:#0b1220;
+}
+.record-date{
+  font-weight:600;
+}
+.record-sub{
+  color:#8d98aa;
+  font-size:12px;
+  margin-top:3px;
+}
+.tag{
+  color:#7dd3fc;
+  font-size:12px;
+}
+.empty{
+  color:#707c90;
+  text-align:center;
+  padding:30px 10px;
+}
+.footer{
+  color:#596579;
+  text-align:center;
+  font-size:12px;
+  margin-top:20px;
+}
+@media(max-width:700px){
+  .controls{
+    grid-template-columns:1fr 1fr;
+  }
+  .controls>div:first-child{
+    grid-column:1/-1;
+  }
+  .add-grid{
+    grid-template-columns:1fr 1fr;
+  }
+  .add-grid .wide{
+    grid-column:1/-1;
+  }
+  .stats{
+    grid-template-columns:1fr 1fr;
+  }
+  .chart-wrap{
+    height:270px;
+  }
+  .record{
+    grid-template-columns:1fr auto;
+  }
+  .record .actions{
+    grid-column:2;
+  }
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="logo">XLY × GNN · STUDY TRACKER</div>
+    <h1>背单词记录</h1>
+    <div class="subtitle">记录每天的学习时间与词汇量</div>
+  </div>
+
+  <!-- 筛选 -->
+  <div class="panel">
+    <div class="controls">
+
+      <div>
+        <label>成员</label>
+        <select id="personFilter">
+          <option value="all">两个人</option>
+          <option value="小钰">小钰</option>
+          <option value="小娜">小娜</option>
+        </select>
+      </div>
+
+      <div>
+        <label>时间范围</label>
+        <select id="rangeFilter">
+          <option value="day">日</option>
+          <option value="week">周</option>
+          <option value="month">月</option>
+        </select>
+      </div>
+
+      <div>
+        <label>统计指标</label>
+        <select id="metricFilter">
+          <option value="minutes">背词时间</option>
+          <option value="words">单词数量</option>
+        </select>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 数据统计 -->
+  <div class="panel">
+    <div class="stats">
+
+      <div class="stat">
+        <div class="stat-title">今日时间</div>
+        <div class="stat-value" id="todayMinutes">0 分</div>
+      </div>
+
+      <div class="stat">
+        <div class="stat-title">今日单词</div>
+        <div class="stat-value" id="todayWords">0</div>
+      </div>
+
+      <div class="stat">
+        <div class="stat-title">记录天数</div>
+        <div class="stat-value" id="recordDays">0</div>
+      </div>
+
+      <div class="stat">
+        <div class="stat-title">累计单词</div>
+        <div class="stat-value" id="totalWords">0</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 图表 -->
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div>
+        <strong id="chartTitle">背词时间</strong>
+        <div style="color:#69768a;font-size:12px;margin-top:3px">
+          点击图表查看具体数据
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <canvas id="chart"></canvas>
+    </div>
+
+    <div id="chartTip"
+         style="display:none;margin-top:8px;padding:10px;border-radius:10px;background:#0b1220;color:#dbeafe;font-size:13px">
+    </div>
+  </div>
+
+  <!-- 新增 -->
+  <div class="panel">
+    <strong>添加每日记录</strong>
+
+    <div class="add-grid" style="margin-top:12px">
+
+      <div>
+        <label>日期</label>
+        <input id="dateInput" type="date">
+      </div>
+
+      <div>
+        <label>成员</label>
+        <select id="personInput">
+          <option value="小钰">小钰</option>
+          <option value="小娜">小娜</option>
+        </select>
+      </div>
+
+      <div>
+        <label>时间（分钟）</label>
+        <input id="minutesInput" type="number" min="0" placeholder="例如 45">
+      </div>
+
+      <div>
+        <label>单词数量</label>
+        <input id="wordsInput" type="number" min="0" placeholder="例如 120">
+      </div>
+
+      <button class="btn wide" onclick="saveRecord()">保存记录</button>
+
+    </div>
+  </div>
+
+  <!-- 记录 -->
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <strong>最近记录</strong>
+      <button class="btn secondary" onclick="clearAll()">清空全部</button>
+    </div>
+
+    <div id="records" class="records"></div>
+  </div>
+
+  <div class="footer">
+    第一版测试 · 数据暂存在当前设备
+  </div>
+
+</div>
+
+<script>
+const KEY="xly_word_tracker_v1";
+
+let data=JSON.parse(localStorage.getItem(KEY)||"[]");
+
+const $=id=>document.getElementById(id);
+
+function today(){
+  const d=new Date();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const day=String(d.getDate()).padStart(2,"0");
+  return d.getFullYear()+"-"+m+"-"+day;
+}
+
+$("dateInput").value=today();
+
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(data));
+}
+
+function saveRecord(){
+
+  const date=$("dateInput").value;
+  const person=$("personInput").value;
+  const minutes=Number($("minutesInput").value||0);
+  const words=Number($("wordsInput").value||0);
+
+  if(!date){
+    alert("请选择日期");
+    return;
+  }
+
+  if(minutes<0 || words<0){
+    alert("数据不能小于 0");
+    return;
+  }
+
+  const old=data.find(x=>x.date===date && x.person===person);
+
+  if(old){
+    old.minutes+=minutes;
+    old.words+=words;
+  }else{
+    data.push({
+      id:Date.now(),
+      date,
+      person,
+      minutes,
+      words
+    });
+  }
+
+  save();
+
+  $("minutesInput").value="";
+  $("wordsInput").value="";
+
+  render();
+}
+
+function deleteRecord(id){
+  if(!confirm("删除这条记录？")) return;
+
+  data=data.filter(x=>x.id!==id);
+  save();
+  render();
+}
+
+function clearAll(){
+
+  if(!data.length){
+    alert("目前没有记录");
+    return;
+  }
+
+  if(!confirm("确定清空全部记录？")) return;
+
+  data=[];
+  save();
+  render();
+}
+
+function editRecord(id){
+
+  const x=data.find(a=>a.id===id);
+  if(!x)return;
+
+  const m=prompt("修改背词时间（分钟）",x.minutes);
+  if(m===null)return;
+
+  const w=prompt("修改单词数量",x.words);
+  if(w===null)return;
+
+  x.minutes=Math.max(0,Number(m)||0);
+  x.words=Math.max(0,Number(w)||0);
+
+  save();
+  render();
+}
+
+function sum(arr,key){
+  return arr.reduce((s,x)=>s+Number(x[key]||0),0);
+}
+
+function renderStats(){
+
+  const t=today();
+
+  const todayData=data.filter(x=>x.date===t);
+
+  $("todayMinutes").textContent=sum(todayData,"minutes")+" 分";
+  $("todayWords").textContent=sum(todayData,"words");
+  $("recordDays").textContent=new Set(data.map(x=>x.date)).size;
+  $("totalWords").textContent=sum(data,"words");
+}
+
+function renderRecords(){
+
+  const box=$("records");
+
+  const arr=[...data].sort((a,b)=>{
+    return b.date.localeCompare(a.date);
+  });
+
+  if(!arr.length){
+    box.innerHTML='<div class="empty">还没有学习记录</div>';
+    return;
+  }
+
+  box.innerHTML=arr.slice(0,30).map(x=>`
+
+    <div class="record">
+
+      <div>
+        <div class="record-date">${x.date}</div>
+        <div class="record-sub">
+          ${x.minutes} 分钟 · ${x.words} 个单词
+        </div>
+      </div>
+
+      <div class="tag">${x.person}</div>
+
+      <button class="btn secondary" onclick="editRecord(${x.id})">
+        修改
+      </button>
+
+      <button class="btn danger" onclick="deleteRecord(${x.id})">
+        删除
+      </button>
+
+    </div>
+
+  `).join("");
+}
+
+function dateRange(){
+
+  const range=$("rangeFilter").value;
+  const end=new Date();
+  const result=[];
+
+  let count=range==="day"?14:(range==="week"?12:12);
+
+  if(range==="day"){
+
+    for(let i=count-1;i>=0;i--){
+      const d=new Date(end);
+      d.setDate(d.getDate()-i);
+      result.push(formatDate(d));
+    }
+
+  }else if(range==="week"){
+
+    for(let i=count-1;i>=0;i--){
+
+      const d=new Date(end);
+      d.setDate(d.getDate()-i*7);
+
+      result.push(formatDate(d));
+
+    }
+
+  }else{
+
+    for(let i=count-1;i>=0;i--){
+
+      const d=new Date(end.getFullYear(),end.getMonth()-i,1);
+
+      result.push(
+        d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")
+      );
+
+    }
+  }
+
+  return result;
+}
+
+function formatDate(d){
+  return d.getFullYear()+"-"+
+    String(d.getMonth()+1).padStart(2,"0")+"-"+
+    String(d.getDate()).padStart(2,"0");
+}
+
+function aggregate(){
+
+  const range=$("rangeFilter").value;
+  const person=$("personFilter").value;
+  const metric=$("metricFilter").value;
+
+  const dates=dateRange();
+
+  return dates.map(label=>{
+
+    let arr=data.filter(x=>{
+      if(person!=="all" && x.person!==person)return false;
+
+      if(range==="day"){
+        return x.date===label;
+      }
+
+      if(range==="week"){
+        const d=new Date(x.date);
+        const target=new Date(label);
+        const diff=(target-d)/(86400000);
+        return diff<=6 && diff>=0;
+      }
+
+      return x.date.startsWith(label);
+    });
+
+    return {
+      label,
+      value:sum(arr,metric)
+    };
+
+  });
+}
+
+function drawChart(){
+
+  const canvas=$("chart");
+  const box=canvas.parentElement;
+
+  const ratio=window.devicePixelRatio||1;
+  const w=box.clientWidth;
+  const h=box.clientHeight;
+
+  canvas.width=w*ratio;
+  canvas.height=h*ratio;
+
+  const ctx=canvas.getContext("2d");
+  ctx.scale(ratio,ratio);
+
+  ctx.clearRect(0,0,w,h);
+
+  const points=aggregate();
+
+  const values=points.map(x=>x.value);
+  const max=Math.max(...values,1);
+
+  const left=42;
+  const right=12;
+  const top=20;
+  const bottom=35;
+
+  const cw=w-left-right;
+  const ch=h-top-bottom;
+
+  // 网格
+  ctx.strokeStyle="#202b3d";
+  ctx.lineWidth=1;
+
+  for(let i=0;i<=4;i++){
+
+    const y=top+ch*i/4;
+
+    ctx.beginPath();
+    ctx.moveTo(left,y);
+    ctx.lineTo(w-right,y);
+    ctx.stroke();
+
+    ctx.fillStyle="#657186";
+    ctx.font="11px sans-serif";
+    ctx.fillText(
+      Math.round(max*(4-i)/4),
+      5,
+      y+4
+    );
+  }
+
+  if(points.length<1)return;
+
+  const coords=points.map((p,i)=>{
+
+    const x=left+(cw*i)/Math.max(points.length-1,1);
+    const y=top+ch-(p.value/max)*ch;
+
+    return {x,y,p};
+
+  });
+
+  // 折线
+  ctx.strokeStyle="#38bdf8";
+  ctx.lineWidth=3;
+  ctx.lineJoin="round";
+  ctx.lineCap="round";
+
+  ctx.beginPath();
+
+  coords.forEach((p,i)=>{
+    if(i===0)ctx.moveTo(p.x,p.y);
+    else ctx.lineTo(p.x,p.y);
+  });
+
+  ctx.stroke();
+
+  // 点
+  coords.forEach(p=>{
+
+    ctx.beginPath();
+    ctx.fillStyle="#38bdf8";
+    ctx.arc(p.x,p.y,4,0,Math.PI*2);
+    ctx.fill();
+
+  });
+
+  // X轴
+  ctx.fillStyle="#657186";
+  ctx.font="10px sans-serif";
+  ctx.textAlign="center";
+
+  coords.forEach((p,i)=>{
+
+    if(
+      points.length<=14 ||
+      i===0 ||
+      i===points.length-1 ||
+      i%2===0
+    ){
+      ctx.fillText(
+        p.p.label.slice(5),
+        p.x,
+        h-10
+      );
+    }
+
+  });
+
+  canvas._coords=coords;
+}
+
+canvas.addEventListener("click",function(e){
+
+  const coords=canvas._coords||[];
+
+  if(!coords.length)return;
+
+  const rect=canvas.getBoundingClientRect();
+
+  const x=e.clientX-rect.left;
+
+  let nearest=coords[0];
+
+  coords.forEach(p=>{
+
+    if(
+      Math.abs(p.x-x)<
+      Math.abs(nearest.x-x)
+    ){
+      nearest=p;
+    }
+
+  });
+
+  const metric=$("metricFilter").value;
+
+  $("chartTip").style.display="block";
+
+  $("chartTip").textContent=
+    nearest.p.label+
+    " · "+
+    (metric==="minutes"?"背词时间":"单词数量")+
+    "："+
+    nearest.p.value+
+    (metric==="minutes"?" 分钟":" 个");
+
+});
+
+function render(){
+
+  renderStats();
+  renderRecords();
+
+  $("chartTitle").textContent=
+    $("metricFilter").value==="minutes"
+      ?"背词时间"
+      :"单词数量";
+
+  drawChart();
+}
+
+$("personFilter").addEventListener("change",render);
+$("rangeFilter").addEventListener("change",render);
+$("metricFilter").addEventListener("change",render);
+
+window.addEventListener("resize",drawChart);
+
+render();
+</script>
+
+</body>
+</html>
